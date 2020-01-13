@@ -1,12 +1,43 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
-import './index.css';
-import App from './App';
-import * as serviceWorker from './serviceWorker';
+import React from "react";
+import ReactDOM from "react-dom";
+import "./index.css";
+import { Prosemirror } from "./Prosemirror";
+import * as serviceWorker from "./serviceWorker";
+import { EditorState } from "prosemirror-state";
+import { EditorView } from "prosemirror-view";
 
-ReactDOM.render(<App />, document.getElementById('root'));
+import { dinoSchema } from "./dinoSchema";
+import { response } from "./transcripts";
+import { toProsemirrorFormat } from "./utils";
+import { schema } from "prosemirror-schema-basic";
+import _ from "lodash";
 
-// If you want your app to work offline and load faster, you can change
-// unregister() to register() below. Note this comes with some pitfalls.
-// Learn more about service workers: https://bit.ly/CRA-PWA
-serviceWorker.unregister();
+const { Plugin } = require("prosemirror-state");
+
+let startDoc = dinoSchema.node("doc", null, [
+  dinoSchema.node("paragraph", null, toProsemirrorFormat(response.transcripts))
+]);
+
+let state = EditorState.create({
+  schema: dinoSchema,
+  doc: startDoc
+});
+
+let view = new EditorView(document.body, {
+  state,
+  dispatchTransaction(transaction) {
+    let newState = view.state.apply(transaction);
+    view.updateState(newState);
+  }
+});
+
+function apply(tr) {
+  let newState = view.state.apply(tr);
+  view.updateState(newState);
+}
+
+let count = 0;
+setInterval(() => {
+  apply(view.state.tr.addMark(count, count + 5, dinoSchema.mark("strong")));
+  count += 5;
+}, 500);
